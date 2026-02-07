@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "express": "^4.18.2",
     "@google/genai": "^1.39.0",
     "lucide-react": "^0.563.0",
     "react": "^19.2.4",
