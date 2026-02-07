@@ -14,9 +14,9 @@ export class GeminiService {
     this.initAi();
   }
 
-  private initAi() {
-    this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  }
+private initAi() {
+  this.ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY || process.env.API_KEY });
+}
 
   public initChat(level: string, subjectTitle: string, stepLabel: string, characterId: CharacterId, nativeLanguage: NativeLanguage, learningMode: LearningMode) {
     this.initAi();
@@ -118,8 +118,10 @@ export class GeminiService {
     }
     this.lastTtsTime = Date.now();
 
-    return this.withRetry(async () => {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+return this.withRetry(async () => {
+  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY || process.env.API_KEY });
+  // ... rest of the code
+});
       
       // UNIVERSAL CLEANING:
       // Remove XP tags, emojis, and problematic symbols while PRESERVING all alphabets (including Arabic)
