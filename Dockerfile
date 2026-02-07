@@ -9,8 +9,9 @@ RUN npm run build
 # Production stage
 FROM node:22-slim
 WORKDIR /app
-RUN npm install -g serve
+COPY package*.json ./
+RUN npm install --only=production
 COPY --from=build /app/dist ./dist
+COPY server.js ./
 EXPOSE 3000
-# This ensures that if PORT is missing, it defaults to 3000
-CMD ["sh", "-c", "serve -s dist -l ${PORT:-3000}"]
+CMD ["node", "server.js"]
