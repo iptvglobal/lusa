@@ -11,7 +11,6 @@ FROM node:22-slim
 WORKDIR /app
 RUN npm install -g serve
 COPY --from=build /app/dist ./dist
-# Railway provides the PORT environment variable automatically
-ENV PORT=3000
 EXPOSE 3000
-CMD ["sh", "-c", "serve -s dist -l ${PORT}"]
+# This ensures that if PORT is missing, it defaults to 3000
+CMD ["sh", "-c", "serve -s dist -l ${PORT:-3000}"]
