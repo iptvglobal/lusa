@@ -1,0 +1,7 @@
+{
+  "name": "LusaTutor - European Portuguese AI Tutor",
+  "description": "An advanced AI language tutor specializing in European Portuguese (Portugal) with real-time voice interaction, dynamic level adaptation, and instant error correction.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
