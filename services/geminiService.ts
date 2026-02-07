@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Modality, Chat } from "@google/genai";
 import { SYSTEM_INSTRUCTION, GPT_MODEL_CHAT, GPT_MODEL_TTS, CHARACTERS } from "../constants";
 import { CharacterId, NativeLanguage, LearningMode } from "../types";
@@ -14,9 +13,9 @@ export class GeminiService {
     this.initAi();
   }
 
-private initAi() {
-  this.ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY || process.env.API_KEY });
-}
+  private initAi() {
+    this.ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY || process.env.API_KEY });
+  }
 
   public initChat(level: string, subjectTitle: string, stepLabel: string, characterId: CharacterId, nativeLanguage: NativeLanguage, learningMode: LearningMode) {
     this.initAi();
@@ -49,14 +48,12 @@ private initAi() {
         const errorMsg = error.message?.toLowerCase() || "";
         const errorCode = error.code || error.status;
         
-        // Quota Handling
         if (errorMsg.includes("limit: 0") || errorMsg.includes("quota exceeded") || errorMsg.includes("exhausted") || errorCode === 429) {
            this.ttsCooldownUntil = Date.now() + 180000; 
            const enhancedError = new Error("QUOTA_EXHAUSTED");
            throw enhancedError;
         }
 
-        // Handle the specific "non-audio response" error as a failure that shouldn't crash the UI
         if (errorMsg.includes("non-audio response") || errorMsg.includes("audioout")) {
            console.error("Audio conversion failed for this prompt string.");
            throw new Error("AUDIO_GEN_FAILED");
@@ -87,7 +84,6 @@ private initAi() {
     return this.withRetry(async () => {
       if (!this.chat) throw new Error("Chat not initialized");
       
-      // Mandatory instruction at the start of every user turn to keep the model aligned
       const contextPrefix = `[CONTEXT: USER NATIVE LANGUAGE IS ${this.currentNativeLanguage}. DO NOT USE PORTUGUESE FOR CHAT OR GREETINGS. ONLY USE IT FOR THE LESSON PHRASE.]\n`;
       const finalMsg = contextPrefix + message;
 
@@ -118,19 +114,15 @@ private initAi() {
     }
     this.lastTtsTime = Date.now();
 
-return this.withRetry(async () => {
-  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY || process.env.API_KEY });
-  // ... rest of the code
-});
+    return this.withRetry(async () => {
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY || process.env.API_KEY });
       
-      // UNIVERSAL CLEANING:
-      // Remove XP tags, emojis, and problematic symbols while PRESERVING all alphabets (including Arabic)
       let cleanText = text
-        .replace(/\[XP: \d+\]/g, '') // Remove XP markers
-        .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F1E0}-\u{1F1FF}]/gu, '') // Remove emojis
-        .replace(/[^\p{L}\p{N}\p{P}\s]/gu, '') // Remove everything that isn't a Letter, Number, Punctuation or Space (Unicode aware)
-        .replace(/\n/g, '. ') // Replace newlines with dots for better TTS flow
-        .replace(/\s+/g, ' ') // Collapse multiple spaces
+        .replace(/\[XP: \d+\]/g, '') 
+        .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F1E0}-\u{1F1FF}]/gu, '') 
+        .replace(/[^\p{L}\p{N}\p{P}\s]/gu, '') 
+        .replace(/\n/g, '. ') 
+        .replace(/\s+/g, ' ') 
         .trim();
         
       if (!cleanText || cleanText.length < 2) return null;
