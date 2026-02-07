@@ -1,86 +1,91 @@
-
 import React, { useState, useEffect } from 'react';
 import { Onboarding } from './components/Onboarding';
 import { LessonInterface } from './components/ChatInterface';
 import { LearningPath } from './components/LearningPath';
 import { LanguageLevel, UserProfile, CharacterId } from './types';
-import { GraduationCap, Trophy, Star, User, Key, Map } from 'lucide-react';
+import { GraduationCap, Trophy, Star, User, Key, Map, LogOut } from 'lucide-react';
 import { CHARACTERS, CURRICULUM } from './constants';
+import { AuthProvider, useAuth } from './components/AuthContext';
+import { Auth } from './components/Auth';
 
-const App: React.FC = () => {
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem('lusatutor_profile');
-    return saved ? JSON.parse(saved) : null;
-  });
-  
-  const [view, setView] = useState<'onboarding' | 'path' | 'lesson' | 'characters'>('onboarding');
+const AppContent: React.FC = () => {
+  const { user, logout, updateProfile } = useAuth();
+  const [view, setView] = useState<'onboarding' | 'path' | 'lesson' | 'characters'>('path');
   const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null);
 
+  const userProfile = user?.profile || null;
+
   useEffect(() => {
-    if (userProfile) {
-      localStorage.setItem('lusatutor_profile', JSON.stringify(userProfile));
-      if (view === 'onboarding') setView('path');
+    if (userProfile && userProfile.xp === 0 && userProfile.progress.completedSubjects.length === 0) {
+      setView('onboarding');
+    } else {
+      setView('path');
     }
-  }, [userProfile]);
+  }, [user?.email]);
+
+  if (!user) {
+    return <Auth />;
+  }
 
   const handleOnboardingComplete = (profile: UserProfile) => {
-    setUserProfile(profile);
+    updateProfile(profile);
     setView('path');
   };
 
   const handleUpdateXP = (amount: number) => {
-    setUserProfile(prev => prev ? { ...prev, xp: prev.xp + amount } : null);
+    if (userProfile) {
+      updateProfile({ ...userProfile, xp: userProfile.xp + amount });
+    }
   };
 
   const handleStepComplete = (subjectId: string, stepIndex: number) => {
-    setUserProfile(prev => {
-      if (!prev) return null;
-      
-      const isLastStep = stepIndex === 5; // Mini-Teste
-      let nextStepIndex = stepIndex + 1;
-      let completedSubjects = [...prev.progress.completedSubjects];
-      
-      if (isLastStep) {
-        if (!completedSubjects.includes(subjectId)) completedSubjects.push(subjectId);
-        // Find next subject in curriculum
-        const currIdx = CURRICULUM.findIndex(s => s.id === subjectId);
-        const nextSubject = CURRICULUM[currIdx + 1];
-        
-        return {
-          ...prev,
-          xp: prev.xp + 50,
-          progress: {
-            ...prev.progress,
-            completedSubjects,
-            currentSubjectId: nextSubject ? nextSubject.id : subjectId,
-            currentStepIndex: 0
-          }
-        };
+    if (!userProfile) return;
+    
+    const isLastStep = stepIndex === 5; // Mini-Teste
+    let completedSubjects = [...userProfile.progress.completedSubjects];
+    
+    if (isLastStep) {
+      if (!completedSubjects.includes(subjectId)) {
+        completedSubjects.push(subjectId);
       }
       
-      return {
-        ...prev,
+      const currIdx = CURRICULUM.findIndex(s => s.id === subjectId);
+      const nextSubject = CURRICULUM[currIdx + 1];
+      
+      updateProfile({
+        ...userProfile,
+        xp: userProfile.xp + 50,
         progress: {
-          ...prev.progress,
-          currentStepIndex: nextStepIndex
+          ...userProfile.progress,
+          completedSubjects,
+          currentSubjectId: nextSubject ? nextSubject.id : subjectId,
+          currentStepIndex: 0
         }
-      };
-    });
-    
-    // If it was the last step, exit to path
-    if (stepIndex === 5) setView('path');
+      });
+      
+      setView('path');
+    } else {
+      updateProfile({
+        ...userProfile,
+        progress: {
+          ...userProfile.progress,
+          currentStepIndex: stepIndex + 1
+        }
+      });
+    }
   };
 
   const handleSelectSubject = (id: string) => {
+    if (!userProfile) return;
     setActiveSubjectId(id);
-    setUserProfile(prev => prev ? {
-      ...prev,
+    updateProfile({
+      ...userProfile,
       progress: {
-        ...prev.progress,
+        ...userProfile.progress,
         currentSubjectId: id,
-        currentStepIndex: prev.progress.currentSubjectId === id ? prev.progress.currentStepIndex : 0
+        currentStepIndex: userProfile.progress.currentSubjectId === id ? userProfile.progress.currentStepIndex : 0
       }
-    } : null);
+    });
     setView('lesson');
   };
 
@@ -88,12 +93,13 @@ const App: React.FC = () => {
     if (window.aistudio?.openSelectKey) {
       await window.aistudio.openSelectKey();
       window.location.reload();
+    } else {
+      alert("Google API Key should be set in environment variables for production.");
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans selection:bg-emerald-100">
-      {/* Dynamic Header */}
       <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-2">
           <div className="bg-emerald-600 p-2 rounded-xl text-white shadow-lg">
@@ -107,7 +113,7 @@ const App: React.FC = () => {
 
         {userProfile && (
           <div className="flex items-center gap-3">
-             <button onClick={handleOpenKeySelector} className="p-2 text-slate-400 hover:text-emerald-600 rounded-xl">
+             <button onClick={handleOpenKeySelector} title="API Settings" className="p-2 text-slate-400 hover:text-emerald-600 rounded-xl">
                <Key size={18} />
              </button>
              <div className="flex items-center gap-1 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-full border border-amber-100">
@@ -122,6 +128,9 @@ const App: React.FC = () => {
                 {userProfile.selectedCharacter.charAt(0).toUpperCase()}
               </div>
             </button>
+            <button onClick={logout} title="Logout" className="p-2 text-slate-400 hover:text-red-600 rounded-xl">
+               <LogOut size={18} />
+             </button>
           </div>
         )}
       </header>
@@ -146,7 +155,7 @@ const App: React.FC = () => {
                {Object.values(CHARACTERS).map(char => (
                  <button
                   key={char.id}
-                  onClick={() => { setUserProfile({...userProfile, selectedCharacter: char.id}); setView('path'); }}
+                  onClick={() => { updateProfile({...userProfile, selectedCharacter: char.id}); setView('path'); }}
                   className={`flex gap-4 p-5 rounded-3xl bg-white border-2 transition-all ${userProfile.selectedCharacter === char.id ? 'border-emerald-500 shadow-xl' : 'border-slate-100 opacity-70'}`}
                  >
                    <div className={`w-14 h-14 rounded-2xl ${char.color} flex-shrink-0 flex items-center justify-center text-white text-2xl font-black`}>
@@ -164,7 +173,6 @@ const App: React.FC = () => {
         ) : null}
       </main>
 
-      {/* Navigation */}
       {userProfile && view !== 'lesson' && (
         <nav className="bg-white border-t border-slate-100 py-3 px-8 flex justify-around items-center z-50">
           <button onClick={() => setView('path')} className={`flex flex-col items-center gap-1 ${view === 'path' ? 'text-emerald-600' : 'text-slate-400'}`}>
@@ -182,6 +190,14 @@ const App: React.FC = () => {
         </nav>
       )}
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 
